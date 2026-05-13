@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบติดตามลูกหนี้ค่ารักษาพยาบาล สสจ.ประจวบคีรีขันธ์ v2026.006</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-deep:    #06101f;
+  --bg-card:    #0d1e35;
+  --bg-card2:   #0a1828;
+  --bg-row:     #0f2240;
+  --border:     rgba(56,139,220,0.22);
+  --border-hi:  rgba(56,139,220,0.55);
+  --blue:       #388bdc;
+  --blue-lt:    #6ab0f5;
+  --teal:       #26c6a6;
+  --amber:      #f9a825;
+  --red:        #ef5350;
+  --red-lt:     #ef9a9a;
+  --green:      #66bb6a;
+  --green-dk:   #388e3c;
+  --txt-pri:    #e3f0ff;
+  --txt-sec:    #8cb8e0;
+  --txt-dim:    #4a6f9a;
+  --gold:       #d4af37;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg-deep);color:var(--txt-pri);font-family:'Sarabun','IBM Plex Sans Thai',sans-serif;font-size:14px;min-height:100vh}
+
+/* ─── HEADER ─────────────────────────────── */
+.hdr{
+  background: linear-gradient(135deg,#081a33 0%,#0d2a52 50%,#081a33 100%);
+  border-bottom: 2px solid var(--border-hi);
+  position: sticky; top:0; z-index:100;
+}
+.hdr-top{display:flex;align-items:center;gap:14px;padding:10px 20px;flex-wrap:wrap}
+.logo-ring{
+  width:64px;height:64px;flex-shrink:0;
+  filter: drop-shadow(0 0 8px rgba(56,139,220,0.5));
+}
+.hdr-text{flex:1}
+.hdr-main{font-size:15px;font-weight:600;color:#e3f2fd;line-height:1.35;letter-spacing:.2px}
+.hdr-sub{font-size:10.5px;color:var(--txt-sec);margin-top:2px}
+.hdr-meta{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.date-badge{
+  background:rgba(56,139,220,.18);border:1px solid var(--blue);
+  border-radius:6px;padding:4px 12px;font-size:11px;color:#bbdefb;
+  display:flex;align-items:center;gap:5px;
+}
+.ver-badge{
+  background:linear-gradient(90deg,#0d47a1,#1565c0);
+  border:1px solid var(--blue);border-radius:20px;
+  padding:3px 12px;font-size:10px;font-weight:600;color:#e3f2fd;letter-spacing:.5px;
+}
+/* credit strip */
+.credit-strip{
+  background:rgba(13,47,101,.45);border-top:1px solid rgba(56,139,220,.18);
+  padding:4px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;
+  font-size:10px;color:var(--txt-sec);
+}
+.credit-strip strong{color:var(--blue-lt)}
+
+/* ─── TABS ───────────────────────────────── */
+.tab-bar{
+  background:rgba(6,16,31,.9);border-bottom:1px solid var(--border);
+  display:flex;padding:0 20px;gap:2px;overflow-x:auto;
+  scrollbar-width:none;
+}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-item{
+  padding:10px 18px;font-size:11.5px;font-weight:500;color:var(--txt-dim);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:5px;
+}
+.tab-item:hover{color:var(--txt-sec);background:rgba(56,139,220,.06)}
+.tab-item.active{color:var(--blue-lt);border-bottom-color:var(--blue);background:rgba(56,139,220,.1)}
+.tab-dot{width:6px;height:6px;border-radius:50%}
+
+/* ─── LAYOUT ─────────────────────────────── */
+.page{display:none;padding:14px 20px;flex-direction:column;gap:12px;animation:fadeIn .25s ease}
+.page.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── KPI GRID ───────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.kpi{
+  background:linear-gradient(145deg,var(--bg-card),var(--bg-card2));
+  border:1px solid var(--border);border-radius:12px;padding:14px 16px;
+  position:relative;overflow:hidden;transition:border-color .2s;
+}
+.kpi:hover{border-color:var(--border-hi)}
+.kpi::after{
+  content:'';position:absolute;bottom:-20px;right:-20px;
+  width:70px;height:70px;border-radius:50%;
+  background:radial-gradient(circle,rgba(56,139,220,.1) 0%,transparent 70%);
+}
+.kpi-icon{font-size:20px;margin-bottom:5px;display:block}
+.kpi-lbl{font-size:10px;color:var(--txt-sec);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.kpi-val{font-size:22px;font-weight:600;line-height:1.1;color:var(--txt-pri)}
+.kpi-sub{font-size:10px;color:var(--txt-dim);margin-top:4px}
+.kpi.red{border-color:rgba(239,83,80,.38)} .kpi.red .kpi-val{color:var(--red-lt)}
+.kpi.grn{border-color:rgba(102,187,106,.38)} .kpi.grn .kpi-val{color:#a5d6a7}
+.kpi.amb{border-color:rgba(249,168,37,.38)} .kpi.amb .kpi-val{color:#ffe082}
+.kpi.tl{border-color:rgba(38,198,166,.38)}  .kpi.tl  .kpi-val{color:#80cbc4}
+
+/* ─── CARDS ──────────────────────────────── */
+.card{
+  background:linear-gradient(145deg,var(--bg-card),var(--bg-card2));
+  border:1px solid var(--border);border-radius:12px;padding:16px;
+}
+.card-t{
+  font-size:12px;font-weight:600;color:var(--txt-sec);
+  margin-bottom:12px;display:flex;align-items:center;gap:7px;
+  text-transform:uppercase;letter-spacing:.4px;
+}
+.card-t span{font-size:16px}
+.row2{display:grid;grid-template-columns:3fr 2fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ─── LEGEND ─────────────────────────────── */
+.leg{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--txt-sec)}
+.leg-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* ─── CHIPS ──────────────────────────────── */
+.chip{font-size:9.5px;padding:2px 8px;border-radius:20px;font-weight:600;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.chip-r{background:rgba(239,83,80,.2);color:#ef9a9a;border:1px solid rgba(239,83,80,.45)}
+.chip-g{background:rgba(102,187,106,.2);color:#a5d6a7;border:1px solid rgba(102,187,106,.4)}
+.chip-y{background:rgba(249,168,37,.18);color:#ffe082;border:1px solid rgba(249,168,37,.4)}
+.chip-b{background:rgba(56,139,220,.2);color:#90caf9;border:1px solid rgba(56,139,220,.4)}
+.chip-gr{background:rgba(255,255,255,.07);color:var(--txt-sec);border:1px solid var(--border)}
+.chip-tl{background:rgba(38,198,166,.18);color:#80cbc4;border:1px solid rgba(38,198,166,.4)}
+.chip-gold{background:rgba(212,175,55,.18);color:#f5d060;border:1px solid rgba(212,175,55,.4)}
+
+/* ─── TABLE ──────────────────────────────── */
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{
+  background:rgba(13,47,101,.6);color:var(--txt-sec);
+  font-weight:600;padding:7px 8px;text-align:left;
+  border-bottom:1px solid var(--border-hi);white-space:nowrap;
+  font-size:10px;text-transform:uppercase;letter-spacing:.4px;
+}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);color:#c5deff;vertical-align:middle}
+.tbl tbody tr:hover td{background:rgba(56,139,220,.06)}
+.tbl tr.total td{background:rgba(13,47,101,.5);font-weight:600;border-top:1px solid var(--border-hi);color:var(--txt-pri)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ─── MINI BAR ───────────────────────────── */
+.mbar{height:5px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden;min-width:55px}
+.mbar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.rcell{display:flex;align-items:center;gap:6px}
+.hbar{display:flex;height:14px;border-radius:3px;overflow:hidden;min-width:110px}
+.hbseg{height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(255,255,255,.9);font-weight:600;min-width:12px;overflow:hidden;white-space:nowrap}
+
+/* ─── 3D BUTTONS ─────────────────────────── */
+.btn3d{
+  font-size:11px;padding:7px 16px;border-radius:8px;
+  cursor:pointer;font-weight:600;transition:all .15s;border:none;
+  font-family:inherit;display:inline-flex;align-items:center;gap:5px;
+}
+.btn-blue{background:linear-gradient(180deg,#1e88e5,#0d47a1);color:#e3f2fd;box-shadow:0 4px 0 #062b69,0 5px 8px rgba(0,0,0,.45)}
+.btn-blue:hover{transform:translateY(-1px);box-shadow:0 5px 0 #062b69,0 6px 10px rgba(0,0,0,.45)}
+.btn-blue:active{transform:translateY(3px);box-shadow:0 1px 0 #062b69}
+.btn-grn{background:linear-gradient(180deg,#43a047,#1b5e20);color:#e8f5e9;box-shadow:0 4px 0 #0a2e0c,0 5px 8px rgba(0,0,0,.4)}
+.btn-grn:hover{transform:translateY(-1px)}
+.btn-grn:active{transform:translateY(3px)}
+.btn-amb{background:linear-gradient(180deg,#fb8c00,#e65100);color:#fff3e0;box-shadow:0 4px 0 #8d3200,0 5px 8px rgba(0,0,0,.4)}
+.btn-amb:hover{transform:translateY(-1px)}
+.btn-amb:active{transform:translateY(3px)}
+.btn-red{background:linear-gradient(180deg,#e53935,#7f0000);color:#ffebee;box-shadow:0 4px 0 #4a0000,0 5px 8px rgba(0,0,0,.4)}
+.btn-red:hover{transform:translateY(-1px)}
+.btn-red:active{transform:translateY(3px)}
+.btn-tl{background:linear-gradient(180deg,#26a69a,#004d40);color:#e0f2f1;box-shadow:0 4px 0 #002b25,0 5px 8px rgba(0,0,0,.4)}
+.btn-tl:hover{transform:translateY(-1px)}
+.btn-tl:active{transform:translateY(3px)}
+.btn-gold{background:linear-gradient(180deg,#f9a825,#e65100);color:#fff8e1;box-shadow:0 4px 0 #7a3a00,0 5px 8px rgba(0,0,0,.4)}
+.btn-gold:hover{transform:translateY(-1px)}
+.btn-gold:active{transform:translateY(3px)}
+
+/* ─── HOSP SELECTOR ──────────────────────── */
+.hsel{display:flex;gap:5px;flex-wrap:wrap}
+.hbtn{
+  font-size:10.5px;padding:4px 11px;border:1px solid var(--border);
+  border-radius:6px;background:rgba(13,33,68,.6);color:var(--txt-sec);
+  cursor:pointer;transition:all .15s;font-family:inherit;
+}
+.hbtn.active{background:rgba(56,139,220,.25);border-color:var(--blue);color:#e3f2fd;box-shadow:0 2px 0 rgba(6,43,105,.5)}
+
+/* ─── ALERT BOX ──────────────────────────── */
+.alert-box{
+  border-radius:10px;padding:12px 14px;
+  display:flex;align-items:flex-start;gap:10px;
+}
+.alert-red{background:rgba(239,83,80,.12);border:1px solid rgba(239,83,80,.4)}
+.alert-amb{background:rgba(249,168,37,.12);border:1px solid rgba(249,168,37,.35)}
+.alert-grn{background:rgba(102,187,106,.12);border:1px solid rgba(102,187,106,.35)}
+.alert-blue{background:rgba(56,139,220,.12);border:1px solid rgba(56,139,220,.35)}
+.alert-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.alert-title{font-size:12px;font-weight:600;margin-bottom:3px}
+.alert-body{font-size:11px;color:var(--txt-sec);line-height:1.6}
+
+/* ─── RISK SCORE BAR ─────────────────────── */
+.rscore{height:8px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;flex:1}
+.rscore-fill{height:100%;border-radius:4px;transition:width .8s ease}
+
+/* ─── PROGRESS RING ──────────────────────── */
+.ring-wrap{position:relative;width:80px;height:80px;flex-shrink:0}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.ring-sub{font-size:9px;color:var(--txt-dim);margin-top:-1px}
+
+/* ─── FOOTER ─────────────────────────────── */
+.footer{
+  background:rgba(6,16,31,.9);border-top:1px solid var(--border);
+  padding:8px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;
+  font-size:10px;color:var(--txt-dim);
+}
+.footer-l{display:flex;align-items:center;gap:6px;color:var(--txt-sec);font-weight:500}
+
+/* ─── RESPONSIVE ─────────────────────────── */
+@media(max-width:700px){
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .row2{grid-template-columns:1fr}
+  .row3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════════════════════════ -->
+<header class="hdr">
+  <div class="hdr-top">
+    <!-- โลโก้ สสจ.ประจวบฯ SVG -->
+    <svg class="logo-ring" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ตราสำนักงานสาธารณสุขจังหวัดประจวบคีรีขันธ์">
+      <circle cx="100" cy="100" r="97" fill="#174d28" stroke="#2e7d45" stroke-width="2.5"/>
+      <circle cx="100" cy="100" r="81" fill="none" stroke="#4caf6e" stroke-width="1.2"/>
+      <circle cx="100" cy="100" r="67" fill="#174d28"/>
+      <!-- เปลวไฟ -->
+      <ellipse cx="100" cy="41" rx="9" ry="15" fill="#f9a825" opacity=".95"/>
+      <ellipse cx="100" cy="44" rx="6" ry="10" fill="#ff6f00" opacity=".9"/>
+      <ellipse cx="100" cy="47" rx="3.5" ry="6" fill="#fff9c4" opacity=".85"/>
+      <!-- คทา -->
+      <rect x="97.5" y="54" width="5" height="92" rx="2.5" fill="#c9a227"/>
+      <!-- ปีกซ้าย -->
+      <path d="M97,67 C83,54 56,50 48,62 C44,67 52,73 63,70 C72,67 82,66 97,72" fill="#c9a227" opacity=".9"/>
+      <!-- ปีกขวา -->
+      <path d="M103,67 C117,54 144,50 152,62 C156,67 148,73 137,70 C128,67 118,66 103,72" fill="#c9a227" opacity=".9"/>
+      <!-- งูซ้าย -->
+      <path d="M100,70 C79,76 71,92 82,103 C93,114 79,124 71,135 C63,146 74,160 89,158" fill="none" stroke="#81c784" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- งูขวา -->
+      <path d="M100,70 C121,76 129,92 118,103 C107,114 121,124 129,135 C137,146 126,160 111,158" fill="none" stroke="#81c784" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- หัวงูซ้าย -->
+      <ellipse cx="89" cy="159" rx="9" ry="5.5" fill="#4caf50" transform="rotate(-20,89,159)"/>
+      <circle cx="86" cy="157" r="1.8" fill="#1b2e1c"/>
+      <!-- หัวงูขวา -->
+      <ellipse cx="111" cy="159" rx="9" ry="5.5" fill="#4caf50" transform="rotate(20,111,159)"/>
+      <circle cx="114" cy="157" r="1.8" fill="#1b2e1c"/>
+      <!-- ข้อความโค้งบน -->
+      <path id="arc-t" d="M 23,100 A 77,77 0 0,1 177,100" fill="none"/>
+      <text font-size="11.5" font-family="'Sarabun',sans-serif" fill="#c8e6c9" font-weight="500" letter-spacing="0.3">
+        <textPath href="#arc-t" startOffset="6%">สำนักงานสาธารณสุขจังหวัดประจวบคีรีขันธ์</textPath>
+      </text>
+      <!-- ข้อความโค้งล่าง EN -->
+      <path id="arc-b" d="M 26,108 A 74,74 0 0,0 174,108" fill="none"/>
+      <text font-size="9.5" font-family="'IBM Plex Sans Thai',sans-serif" fill="#a5d6a7" letter-spacing="0.2">
+        <textPath href="#arc-b" startOffset="3%">PRACHUAPKIRIKHAN PROVINCIAL HEALTH OFFICE</textPath>
+      </text>
+      <!-- ดาว ซ้าย-ขวา -->
+      <text x="33" y="113" font-size="11" fill="#f9a825" text-anchor="middle">✦</text>
+      <text x="167" y="113" font-size="11" fill="#f9a825" text-anchor="middle">✦</text>
+    </svg>
+
+    <div class="hdr-text">
+      <div class="hdr-main">ระบบติดตามลูกหนี้ค่ารักษาพยาบาลของหน่วยบริการในสังกัด<br>สำนักงานสาธารณสุขจังหวัดประจวบคีรีขันธ์</div>
+      <div class="hdr-sub">กลุ่มงานประกันสุขภาพ · เขตสุขภาพที่ 5</div>
+    </div>
+
+    <div class="hdr-meta">
+      <div class="date-badge">📅 ข้อมูล ณ เมษายน 2569</div>
+      <div class="ver-badge">⚡ v2026.007</div>
+    </div>
+  </div>
+  <div class="credit-strip">
+    <span>🛡️ จัดทำโดย <strong>กลุ่มงานประกันสุขภาพ สำนักงานสาธารณสุขจังหวัดประจวบคีรีขันธ์</strong></span>
+    <span>ข้อมูล ณ เดือนเมษายน 2569 · อัปเดต v2026.007</span>
+  </div>
+</header>
+
+<!-- ═══ TABS ═══════════════════════════════════════════════════════════ -->
+<nav class="tab-bar">
+  <div class="tab-item active" onclick="showTab(0)"><div class="tab-dot" style="background:#388bdc"></div> ภาพรวมจังหวัด</div>
+  <div class="tab-item" onclick="showTab(1)"><div class="tab-dot" style="background:#66bb6a"></div> ลูกหนี้ภาครัฐ</div>
+  <div class="tab-item" onclick="showTab(2)"><div class="tab-dot" style="background:#80cbc4"></div> บุคคลภายนอก</div>
+  <div class="tab-item" onclick="showTab(3)"><div class="tab-dot" style="background:#f9a825"></div> ⚠️ ปัจจัยเสี่ยง</div>
+  <div class="tab-item" onclick="showTab(4)"><div class="tab-dot" style="background:#ef5350"></div> 🔔 แจ้งเตือน</div>
+  <div class="tab-item" onclick="showTab(5)"><div class="tab-dot" style="background:#d4af37"></div> 📋 สนับสนุนนโยบาย</div>
+  <div class="tab-item" onclick="showTab(6)"><div class="tab-dot" style="background:#ab47bc"></div> 🔬 รายประเภท (รายรพ.)</div>
+  <div class="tab-item" onclick="showTab(7)"><div class="tab-dot" style="background:#26c6a6"></div> 📒 งบทดลอง GFMIS</div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 0: ภาพรวม -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="page active" id="p0">
+
+  <div class="kpi-row">
+    <div class="kpi tl">
+      <span class="kpi-icon">🏥</span>
+      <div class="kpi-lbl">ลูกหนี้ภาครัฐ</div>
+      <div class="kpi-val">535.76 ล้าน</div>
+      <div class="kpi-sub">8 หน่วยบริการ · รหัส 1102050101</div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon">👤</span>
+      <div class="kpi-lbl">ลูกหนี้บุคคลภายนอก</div>
+      <div class="kpi-val" style="color:#80cbc4">146.34 ล้าน</div>
+      <div class="kpi-sub">รหัส 1102050102</div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon">📊</span>
+      <div class="kpi-lbl">ยอดรวมทั้งสิ้น</div>
+      <div class="kpi-val">682.10 ล้าน</div>
+      <div class="kpi-sub">ครบทุกหน่วยบริการ</div>
+    </div>
+    <div class="kpi red">
+      <span class="kpi-icon">⚠️</span>
+      <div class="kpi-lbl">หนี้เกิน 1 ปี (รวม)</div>
+      <div class="kpi-val">172.47 ล้าน</div>
+      <div class="kpi-sub"><span class="chip chip-r">25.28%</span> ต้องเร่งติดตาม</div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-t"><span>📊</span> เปรียบเทียบยอดลูกหนี้ภาครัฐ vs บุคคลภายนอก (ล้านบาท)</div>
+      <div class="leg">
+        <div class="leg-item"><div class="leg-sq" style="background:#388bdc"></div>≤90 วัน (ปกติ)</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#f9a825"></div>91วัน–1ปี (ติดตาม)</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#ef5350"></div>&gt;1ปี (เสี่ยงสูญ)</div>
+      </div>
+      <div style="position:relative;height:200px"><canvas id="c_ov"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>🥧</span> สัดส่วนอายุหนี้รวมทั้งจังหวัด</div>
+      <div style="position:relative;height:130px;margin-bottom:10px"><canvas id="c_pie0"></canvas></div>
+      <div class="row3" style="gap:6px">
+        <div style="background:rgba(56,139,220,.15);border:1px solid rgba(56,139,220,.4);border-radius:8px;padding:7px;text-align:center">
+          <div style="font-size:9px;color:var(--blue-lt);font-weight:600">≤90 วัน</div>
+          <div style="font-size:17px;font-weight:700;color:var(--blue)">52.9%</div>
+          <div style="font-size:9px;color:var(--txt-dim)">360.9 ล้าน</div>
+        </div>
+        <div style="background:rgba(249,168,37,.13);border:1px solid rgba(249,168,37,.4);border-radius:8px;padding:7px;text-align:center">
+          <div style="font-size:9px;color:#ffe082;font-weight:600">91d–1y</div>
+          <div style="font-size:17px;font-weight:700;color:var(--amber)">21.8%</div>
+          <div style="font-size:9px;color:var(--txt-dim)">148.8 ล้าน</div>
+        </div>
+        <div style="background:rgba(239,83,80,.13);border:1px solid rgba(239,83,80,.4);border-radius:8px;padding:7px;text-align:center">
+          <div style="font-size:9px;color:#ef9a9a;font-weight:600">&gt;1 ปี</div>
+          <div style="font-size:17px;font-weight:700;color:var(--red)">25.3%</div>
+          <div style="font-size:9px;color:var(--txt-dim)">172.5 ล้าน</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn3d btn-blue" onclick="showTab(1)">🏥 ดูลูกหนี้ภาครัฐ</button>
+    <button class="btn3d btn-tl" onclick="showTab(2)">👤 ดูบุคคลภายนอก</button>
+    <button class="btn3d btn-amb" onclick="showTab(3)">⚠️ วิเคราะห์ปัจจัยเสี่ยง</button>
+    <button class="btn3d btn-red" onclick="showTab(4)">🔔 แจ้งเตือนเร่งด่วน</button>
+    <button class="btn3d btn-gold" onclick="showTab(5)">📋 สนับสนุนนโยบาย</button>
+  </div>
+
+  <div class="card">
+    <div class="card-t"><span>📋</span> สรุปยอดลูกหนี้รวมทุกหน่วยบริการ (ภาครัฐ + บุคคลภายนอก)</div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th>#</th><th>โรงพยาบาล</th>
+          <th class="num">ภาครัฐ (บาท)</th><th class="num">บุคคลภายนอก (บาท)</th>
+          <th class="num">รวม (บาท)</th><th>สัดส่วนอายุหนี้</th><th>ความเสี่ยง</th>
+        </tr></thead>
+        <tbody id="ov-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 1: ภาครัฐ -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="page" id="p1">
+  <div class="kpi-row">
+    <div class="kpi"><span class="kpi-icon">🧮</span><div class="kpi-lbl">ยอดภาครัฐรวม</div><div class="kpi-val" style="color:var(--blue-lt)">535.76 ล้าน</div><div class="kpi-sub">8 หน่วยบริการ</div></div>
+    <div class="kpi grn"><span class="kpi-icon">✅</span><div class="kpi-lbl">≤90 วัน (ปกติ)</div><div class="kpi-val">327.07 ล้าน</div><div class="kpi-sub"><span class="chip chip-g">61.05%</span></div></div>
+    <div class="kpi amb"><span class="kpi-icon">⏳</span><div class="kpi-lbl">91วัน–1ปี (ติดตาม)</div><div class="kpi-val">104.38 ล้าน</div><div class="kpi-sub"><span class="chip chip-y">19.48%</span></div></div>
+    <div class="kpi red"><span class="kpi-icon">🚨</span><div class="kpi-lbl">เกิน 1 ปี (เสี่ยงสูญ)</div><div class="kpi-val">104.31 ล้าน</div><div class="kpi-sub"><span class="chip chip-r">19.47%</span></div></div>
+  </div>
+  <div class="row2">
+    <div class="card">
+      <div class="card-t"><span>📊</span> ยอดลูกหนี้ภาครัฐ รายโรงพยาบาล (ล้านบาท)</div>
+      <div class="leg">
+        <div class="leg-item"><div class="leg-sq" style="background:#388bdc"></div>≤90วัน</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#f9a825"></div>91d–1y</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#ef5350"></div>&gt;1ปี</div>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="c_gov"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>🏆</span> Top 3 หนี้เกิน 1 ปี — ภาครัฐ</div>
+      <div id="gov-top3" style="display:flex;flex-direction:column;gap:9px;margin-top:6px"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-t"><span>📋</span> รายละเอียดลูกหนี้ภาครัฐ รายโรงพยาบาล</div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>#</th><th>โรงพยาบาล</th><th class="num">ยอดรวม (บาท)</th><th class="num">≤90วัน</th><th class="num">%</th><th class="num">91d–1y</th><th class="num">%</th><th class="num">&gt;1ปี</th><th class="num">%</th><th>ความเสี่ยง</th></tr></thead>
+        <tbody id="gov-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 2: บุคคลภายนอก -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="page" id="p2">
+  <div class="kpi-row">
+    <div class="kpi tl"><span class="kpi-icon">🧮</span><div class="kpi-lbl">ยอดบุคคลภายนอกรวม</div><div class="kpi-val">146.34 ล้าน</div><div class="kpi-sub">รหัส 1102050102</div></div>
+    <div class="kpi grn"><span class="kpi-icon">✅</span><div class="kpi-lbl">≤90วัน</div><div class="kpi-val">32.55 ล้าน</div><div class="kpi-sub"><span class="chip chip-b">22.24%</span></div></div>
+    <div class="kpi amb"><span class="kpi-icon">⏳</span><div class="kpi-lbl">91วัน–1ปี</div><div class="kpi-val">45.63 ล้าน</div><div class="kpi-sub"><span class="chip chip-y">31.18%</span></div></div>
+    <div class="kpi red"><span class="kpi-icon">🚨</span><div class="kpi-lbl">เกิน 1 ปี</div><div class="kpi-val">68.16 ล้าน</div><div class="kpi-sub"><span class="chip chip-r">46.57% — เร่งด่วน</span></div></div>
+  </div>
+  <div class="row2">
+    <div class="card">
+      <div class="card-t"><span>📊</span> ยอดลูกหนี้บุคคลภายนอก รายโรงพยาบาล (ล้านบาท)</div>
+      <div class="leg">
+        <div class="leg-item"><div class="leg-sq" style="background:#388bdc"></div>≤90วัน</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#f9a825"></div>91d–1y</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#ef5350"></div>&gt;1ปี</div>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="c_ext"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>🥧</span> สัดส่วนอายุหนี้บุคคลภายนอก</div>
+      <div style="position:relative;height:130px;margin-bottom:10px"><canvas id="c_extpie"></canvas></div>
+      <div class="alert-box alert-red">
+        <div class="alert-icon">🚨</div>
+        <div>
+          <div class="alert-title" style="color:#ef9a9a">หนี้เกิน 1 ปีสูงถึง 46.57%</div>
+          <div class="alert-body">สูงกว่าลูกหนี้ภาครัฐ 2.4 เท่า — บ่งชี้ว่ากระบวนการเรียกเก็บจากผู้ป่วยชำระเงินเองและเอกชนยังมีช่องว่าง ควรเร่งพัฒนาระบบติดตามหนี้รายบุคคล</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-t"><span>📋</span> รายละเอียดลูกหนี้บุคคลภายนอก รายโรงพยาบาล</div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>#</th><th>โรงพยาบาล</th><th class="num">ยอดรวม (บาท)</th><th class="num">≤90วัน</th><th class="num">%</th><th class="num">91d–1y</th><th class="num">%</th><th class="num">&gt;1ปี</th><th class="num">%</th><th>ความเสี่ยง</th></tr></thead>
+        <tbody id="ext-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 3: ปัจจัยเสี่ยง -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="page" id="p3">
+
+  <div class="alert-box alert-blue" style="margin-bottom:4px">
+    <div class="alert-icon">💡</div>
+    <div>
+      <div class="alert-title" style="color:#90caf9">กรอบแนวคิด: การวิเคราะห์ปัจจัยที่มีผลต่อการเกิดหนี้ค้างชำระ</div>
+      <div class="alert-body">Dashboard นี้วิเคราะห์ความสัมพันธ์ระหว่างสิทธิการรักษา, ระยะเวลาการเรียกเก็บ, ความซับซ้อนของเอกสาร และพฤติกรรมการชำระหนี้ เพื่อช่วยผู้บริหารวางแผนเชิงนโยบายได้อย่างมีหลักฐาน</div>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi red"><span class="kpi-icon">💸</span><div class="kpi-lbl">ประเภทสิทธิ์เสี่ยงสูงสุด</div><div class="kpi-val" style="font-size:16px">ชำระเงินเอง</div><div class="kpi-sub">หนี้ &gt;1ปี เฉลี่ย 68.4% ของกลุ่ม</div></div>
+    <div class="kpi amb"><span class="kpi-icon">📄</span><div class="kpi-lbl">ปัญหาเอกสารไม่ครบ</div><div class="kpi-val" style="font-size:16px">อปท. / เบิกตรง</div><div class="kpi-sub">กระบวนการอนุมัติล่าช้า 45–90 วัน</div></div>
+    <div class="kpi"><span class="kpi-icon">🏥</span><div class="kpi-lbl">รพ.เสี่ยงสูงสุด</div><div class="kpi-val" style="font-size:16px;color:#ef9a9a">รพ.ปราณบุรี</div><div class="kpi-sub">หนี้ &gt;1ปี 54.8% (ภาครัฐ)</div></div>
+    <div class="kpi grn"><span class="kpi-icon">✅</span><div class="kpi-lbl">รพ.ดีที่สุด</div><div class="kpi-val" style="font-size:16px;color:#a5d6a7">รพ.ทับสะแก</div><div class="kpi-sub">หนี้ &gt;1ปี ต่ำที่สุด 2.14%</div></div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-t"><span>📊</span> หนี้เกิน 1 ปี จำแนกตามประเภทสิทธิ์การรักษา (ล้านบาท)</div>
+      <div style="position:relative;height:230px"><canvas id="c_right"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>🎯</span> ระดับความเสี่ยงหนี้สูญ รายประเภทสิทธิ์</div>
+      <div id="risk-list" style="display:flex;flex-direction:column;gap:9px;margin-top:4px"></div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-t"><span>📈</span> เปรียบเทียบ % หนี้เกิน 1 ปี รายโรงพยาบาล (ภาครัฐ + บุคคลภายนอก)</div>
+      <div style="position:relative;height:220px"><canvas id="c_risk_hosp"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>🔍</span> ปัจจัยหลักที่วิเคราะห์ได้จากข้อมูล</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+        <div class="alert-box alert-red" style="padding:10px 12px">
+          <div class="alert-icon" style="font-size:16px">🔴</div>
+          <div><div class="alert-title" style="color:#ef9a9a;font-size:11px">ผู้ป่วยชำระเงินเองและคนต่างด้าว</div><div class="alert-body">มีหนี้ค้างเกิน 1 ปีสูง เนื่องจากขาดกลไกบังคับชำระ ไม่มีสิทธิ์ประกันค้ำ</div></div>
+        </div>
+        <div class="alert-box alert-amb" style="padding:10px 12px">
+          <div class="alert-icon" style="font-size:16px">🟡</div>
+          <div><div class="alert-title" style="color:#ffe082;font-size:11px">ระบบเบิกจ่ายตรง อปท. และกรมบัญชีกลาง</div><div class="alert-body">กระบวนการอนุมัติซับซ้อน เอกสารหลายขั้นตอน ทำให้ระยะเวลาการชำระยาวนาน</div></div>
+        </div>
+        <div class="alert-box alert-grn" style="padding:10px 12px">
+          <div class="alert-icon" style="font-size:16px">🟢</div>
+          <div><div class="alert-title" style="color:#a5d6a7;font-size:11px">UC และประกันสังคม</div><div class="alert-body">มีระบบการเบิกจ่ายชัดเจน แต่ยังมีปัญหาข้อมูลไม่ตรงกันระหว่าง รพ. กับ สปสช./สปส.</div></div>
+        </div>
+        <div class="alert-box alert-blue" style="padding:10px 12px">
+          <div class="alert-icon" style="font-size:16px">🔵</div>
+          <div><div class="alert-title" style="color:#90caf9;font-size:11px">รพ.ปราณบุรี — กรณีศึกษา</div><div class="alert-body">หนี้ UC เกิน 1 ปีสูงถึง 63% แสดงถึงปัญหาการส่งข้อมูลเรียกเก็บล่าช้าและ adjudication ไม่ผ่าน</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 4: แจ้งเตือน (Predictive Alerts) -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="page" id="p4">
+
+  <div class="kpi-row">
+    <div class="kpi red"><span class="kpi-icon">🚨</span><div class="kpi-lbl">รายการเสี่ยงสูงมาก</div><div class="kpi-val">3 รายการ</div><div class="kpi-sub">ต้องดำเนินการทันที</div></div>
+    <div class="kpi amb"><span class="kpi-icon">⚠️</span><div class="kpi-lbl">รายการเสี่ยงสูง</div><div class="kpi-val">4 รายการ</div><div class="kpi-sub">ต้องติดตามภายใน 30 วัน</div></div>
+    <div class="kpi"><span class="kpi-icon">📋</span><div class="kpi-lbl">รายการเสี่ยงปานกลาง</div><div class="kpi-val">6 รายการ</div><div class="kpi-sub">ติดตามภายใน 60 วัน</div></div>
+    <div class="kpi grn"><span class="kpi-icon">✅</span><div class="kpi-lbl">รายการปกติ</div><div class="kpi-val">5 รายการ</div><div class="kpi-sub">ติดตามตามรอบปกติ</div></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+
+    <div class="card">
+      <div class="card-t"><span>🚨</span> การแจ้งเตือนเร่งด่วน — เสี่ยงสูงมาก (ต้องดำเนินการทันที)</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+
+        <div class="alert-box alert-red">
+          <div class="alert-icon">🔴</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+              <div class="alert-title" style="color:#ef5350">รพ.ปราณบุรี — UC เกิน 1 ปี (63% ของหนี้ UC)</div>
+              <span class="chip chip-r">🚨 เร่งด่วนสูงสุด</span>
+            </div>
+            <div class="alert-body">ยอดหนี้ UC เกิน 1 ปี: 12,585,778 บาท · ต้องตรวจสอบสาเหตุ adjudication ไม่ผ่านและเร่งส่งข้อมูลใหม่ไปยัง สปสช. ภายใน 15 วัน</div>
+            <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="chip chip-b">📅 เดือน เม.ย. 68 ลงไป</span>
+              <span class="chip chip-r">💰 12.59 ล้านบาท</span>
+              <span class="chip chip-y">⏱ ค้างชำระ &gt;365 วัน</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert-box alert-red">
+          <div class="alert-icon">🔴</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+              <div class="alert-title" style="color:#ef5350">รพ.หัวหิน — ชำระเงินเอง เกิน 1 ปี (83% ของหนี้กลุ่มนี้)</div>
+              <span class="chip chip-r">🚨 เร่งด่วนสูงสุด</span>
+            </div>
+            <div class="alert-body">ยอดหนี้ชำระเงินเองเกิน 1 ปี: 30,207,044 บาท · ควรตรวจสอบฐานข้อมูลลูกหนี้รายบุคคล ดำเนินการทางกฎหมายสำหรับรายที่ไม่ตอบสนอง</div>
+            <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="chip chip-b">👤 ผู้ป่วยทั่วไป</span>
+              <span class="chip chip-r">💰 30.21 ล้านบาท</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert-box alert-red">
+          <div class="alert-icon">🔴</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+              <div class="alert-title" style="color:#ef5350">รพ.ประจวบฯ — ชำระเงินเอง เกิน 1 ปี (76% ของหนี้กลุ่มนี้)</div>
+              <span class="chip chip-r">🚨 เร่งด่วน</span>
+            </div>
+            <div class="alert-body">ยอดหนี้ชำระเงินเองเกิน 1 ปี: 7,548,412 บาท · เป็นกลุ่มที่ไม่มีสิทธิ์ประกันค้ำประกัน ควรเร่งดำเนินการเรียกเก็บผ่านช่องทางทางกฎหมาย</div>
+            <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="chip chip-r">💰 7.55 ล้านบาท</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-t"><span>⚠️</span> การแจ้งเตือนสำคัญ — เสี่ยงสูง (ติดตามภายใน 30 วัน)</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+
+        <div class="alert-box alert-amb">
+          <div class="alert-icon">🟡</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+              <div class="alert-title" style="color:#ffe082">รพ.บางสะพานน้อย — หนี้เกิน 1 ปีรวม 31% สูงเกินเกณฑ์</div>
+              <span class="chip chip-y">⚠️ สูง</span>
+            </div>
+            <div class="alert-body">หนี้บุคคลภายนอกเกิน 1 ปี 57.5% — ควรตรวจสอบระบบ Follow-up ลูกหนี้รายบุคคลและพิจารณากระบวนการ write-off</div>
+            <div style="margin-top:6px"><span class="chip chip-y">💰 ภาครัฐ 0.29 ล้าน + บุคคลภายนอก 2.07 ล้าน = 2.36 ล้านบาท</span></div>
+          </div>
+        </div>
+
+        <div class="alert-box alert-amb">
+          <div class="alert-icon">🟡</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+              <div class="alert-title" style="color:#ffe082">รพ.ประจวบฯ — UC เกิน 1 ปี 16.8% ของหนี้ UC</div>
+              <span class="chip chip-y">⚠️ ติดตาม</span>
+            </div>
+            <div class="alert-body">ยอด 15,041,939 บาท · ควรตรวจสอบว่าข้อมูลการให้บริการถูกส่งไป สปสช. ครบถ้วนหรือไม่ มีรายการปฏิเสธหรือไม่</div>
+          </div>
+        </div>
+
+        <div class="alert-box alert-amb">
+          <div class="alert-icon">🟡</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+              <div class="alert-title" style="color:#ffe082">ทุก รพ. — หนี้ประกันสังคมเกิน 1 ปีสะสมทั่วจังหวัด</div>
+              <span class="chip chip-y">⚠️ ระดับจังหวัด</span>
+            </div>
+            <div class="alert-body">รวมทั้งจังหวัด 28.97 ล้านบาท · ควรประสานสปส.เขตเพื่อเร่งชำระหนี้ค้างและป้องกันการตัดสิทธิ์ผู้ประกันตน</div>
+          </div>
+        </div>
+
+        <div class="alert-box alert-amb">
+          <div class="alert-icon">🟡</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+              <div class="alert-title" style="color:#ffe082">ทุก รพ. — บุคคลภายนอก 91d–1y = 45.63 ล้านบาท กำลังจะกลายเป็น &gt;1ปี</div>
+              <span class="chip chip-y">⚠️ เชิงป้องกัน</span>
+            </div>
+            <div class="alert-body">ต้องเร่งติดตามก่อนครบ 1 ปี · จัดทีม Collection ติดต่อลูกหนี้ภายใน 60 วัน</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 5: สนับสนุนนโยบาย -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="page" id="p5">
+
+  <div class="alert-box alert-blue">
+    <div class="alert-icon">📋</div>
+    <div>
+      <div class="alert-title" style="color:#90caf9">สรุปข้อมูลเชิงนโยบาย — Policy Support Dashboard</div>
+      <div class="alert-body">ข้อมูลสังเคราะห์เพื่อสนับสนุนการตัดสินใจของผู้บริหาร สสจ. ในการวางแผนพัฒนาระบบการเรียกเก็บหนี้และป้องกันการเกิดหนี้สูญ</div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-t"><span>📊</span> สิทธิ์การรักษาที่มีหนี้คงค้างเกิน 1 ปีสูงสุด (ภาพรวมจังหวัด)</div>
+      <div style="position:relative;height:220px"><canvas id="c_policy_right"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>📈</span> % หนี้เกิน 1 ปี เทียบเกณฑ์มาตรฐาน (เป้าหมาย &lt;10%)</div>
+      <div id="policy-bars" style="display:flex;flex-direction:column;gap:8px;margin-top:4px"></div>
+    </div>
+  </div>
+
+  <div class="row3">
+    <div class="card">
+      <div class="card-t"><span>🎯</span> ข้อเสนอแนะเชิงนโยบาย</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="background:#ef5350;color:#fff;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px">1</span>
+          <div style="font-size:11px;color:var(--txt-sec);line-height:1.6">จัดตั้ง <strong style="color:var(--txt-pri)">ทีม Collection เฉพาะกิจ</strong> สำหรับลูกหนี้ชำระเงินเองเกิน 1 ปี เน้น รพ.หัวหิน และ รพ.ประจวบฯ</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="background:#f9a825;color:#000;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px">2</span>
+          <div style="font-size:11px;color:var(--txt-sec);line-height:1.6">ประสานงาน <strong style="color:var(--txt-pri)">สปสช.เขต 5</strong> เพื่อเร่งพิจารณา adjudication คำร้อง UC ที่ค้างอยู่ทั้ง รพ.ปราณบุรี</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="background:#388bdc;color:#fff;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px">3</span>
+          <div style="font-size:11px;color:var(--txt-sec);line-height:1.6">กำหนด <strong style="color:var(--txt-pri)">SLA การส่งข้อมูลเรียกเก็บ</strong> ภายใน 30 วันหลังให้บริการสำหรับทุก รพ.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="background:#66bb6a;color:#fff;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px">4</span>
+          <div style="font-size:11px;color:var(--txt-sec);line-height:1.6">นำ <strong style="color:var(--txt-pri)">รพ.ทับสะแก</strong> (หนี้ &gt;1ปี ต่ำสุด 2.14%) เป็น Best Practice ถ่ายทอดกระบวนการ</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <span style="background:#26c6a6;color:#fff;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px">5</span>
+          <div style="font-size:11px;color:var(--txt-sec);line-height:1.6">พิจารณา <strong style="color:var(--txt-pri)">ระบบ Electronic Billing</strong> เชื่อมต่อกับ อปท. เพื่อลดระยะเวลาการเบิกจ่าย</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>🏆</span> Ranking โรงพยาบาล (ตามประสิทธิภาพการเรียกเก็บ)</div>
+      <div id="hosp-rank" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>🎓</span> เป้าหมายที่ควรดำเนินการ</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="background:rgba(239,83,80,.12);border:1px solid rgba(239,83,80,.3);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:#ef9a9a;font-weight:600;margin-bottom:3px">🎯 ระยะสั้น (1–3 เดือน)</div>
+          <div style="font-size:10.5px;color:var(--txt-sec)">ลดหนี้เกิน 1 ปี (ภาครัฐ) จาก 19.47% → ต่ำกว่า 15%<br>เร่งชำระ รพ.ปราณบุรี UC 12.59 ล้านบาท</div>
+        </div>
+        <div style="background:rgba(249,168,37,.12);border:1px solid rgba(249,168,37,.3);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:#ffe082;font-weight:600;margin-bottom:3px">🎯 ระยะกลาง (3–6 เดือน)</div>
+          <div style="font-size:10.5px;color:var(--txt-sec)">ลดหนี้บุคคลภายนอกเกิน 1 ปีจาก 46.57% → ต่ำกว่า 30%<br>พัฒนาระบบ Auto-Alert สำหรับหนี้ใกล้ครบ 90 วัน</div>
+        </div>
+        <div style="background:rgba(56,139,220,.12);border:1px solid rgba(56,139,220,.3);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;color:#90caf9;font-weight:600;margin-bottom:3px">🎯 ระยะยาว (6–12 เดือน)</div>
+          <div style="font-size:10.5px;color:var(--txt-sec)">หนี้ทุกประเภทเกิน 1 ปี &lt;10% ตามมาตรฐาน<br>เชื่อมระบบ Dashboard กับ Google Sheet แบบ Real-time</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 6: รายประเภท -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="page" id="p6">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-size:11.5px;color:var(--txt-sec);font-weight:500">🔍 เลือกโรงพยาบาล:</span>
+    <div class="hsel" id="hsel6"></div>
+  </div>
+  <div class="row2">
+    <div class="card">
+      <div class="card-t" id="tct6"><span>📊</span> รายประเภทลูกหนี้</div>
+      <div class="leg">
+        <div class="leg-item"><div class="leg-sq" style="background:#388bdc"></div>≤90วัน</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#f9a825"></div>91d–1y</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#ef5350"></div>&gt;1ปี</div>
+      </div>
+      <div style="position:relative;height:270px"><canvas id="c_type"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>🏆</span> ประเภทที่มีหนี้เกิน 1 ปีสูงสุด</div>
+      <div id="type-top6" style="display:flex;flex-direction:column;gap:8px;margin-top:4px"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-t" id="ttt6"><span>📋</span> ตารางรายประเภทลูกหนี้</div>
+    <div class="tbl-wrap">
+      <table class="tbl"><thead><tr><th>#</th><th>ประเภทลูกหนี้</th><th class="num">≤90วัน (บาท)</th><th class="num">91d–1y (บาท)</th><th class="num">&gt;1ปี (บาท)</th><th class="num">รวม (บาท)</th><th>% &gt;1ปี</th><th>ความเสี่ยง</th></tr></thead>
+      <tbody id="type-tbody6"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- FOOTER -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="footer-l">👤 ADMIN : Sutthirat Sutthisumdeang &nbsp;|&nbsp; กลุ่มงานประกันสุขภาพ &nbsp;|&nbsp; สำนักงานสาธารณสุขจังหวัดประจวบคีรีขันธ์ เขตสุขภาพที่ 5</div>
+  <div><strong style="color:var(--blue-lt)">v2026.007</strong></div>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<script>
+const fmt=n=>n==null?'–':n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtM=n=>parseFloat((n/1e6).toFixed(2));
+const DG='rgba(255,255,255,0.06)',DT='#607d9a';
+Chart.defaults.color=DT; Chart.defaults.borderColor=DG;
+
+/* ═══ DATA ═══════════════════════════════════════════════════════════ */
+const govAll=[
+  {n:'รพ.ประจวบฯ',  d90:86079608.66, d91:29561507.76, d1y:29541121.27},
+  {n:'รพ.กุยบุรี',   d90:6571980.9,   d91:2153039.47,  d1y:163454},
+  {n:'รพ.ทับสะแก',   d90:6522935.5,   d91:3218167.85,  d1y:213261},
+  {n:'รพ.บางสะพาน',  d90:49645205.83, d91:14334087.5,  d1y:8206544.16},
+  {n:'รพ.บางสะพานน้อย',d90:5440907.65,d91:1194432.09,  d1y:285828.75},
+  {n:'รพ.ปราณบุรี',  d90:9873652,     d91:2089194.83,  d1y:14488982.43},
+  {n:'รพ.หัวหิน',    d90:151629031.17,d91:45931132.25, d1y:51346259.41},
+  {n:'รพ.สามร้อยยอด',d90:11306671.47, d91:5900407.62,  d1y:65068},
+];
+govAll.forEach(h=>{h.total=h.d90+h.d91+h.d1y});
+
+const extAll=[
+  {n:'รพ.ประจวบฯ',  d90:7655725.83,  d91:10552271.46, d1y:16812310.88},
+  {n:'รพ.กุยบุรี',   d90:529355,      d91:945895,      d1y:668390},
+  {n:'รพ.ทับสะแก',   d90:792118,      d91:1209797.25,  d1y:1246719.5},
+  {n:'รพ.บางสะพาน',  d90:4239248.65,  d91:5075004.5,   d1y:6323280.15},
+  {n:'รพ.บางสะพานน้อย',d90:709271.25, d91:824006.95,   d1y:2072361.5},
+  {n:'รพ.ปราณบุรี',  d90:1788069,     d91:1408159.14,  d1y:5462294.37},
+  {n:'รพ.หัวหิน',    d90:15323596.11, d91:22816307.21, d1y:33306282.99},
+  {n:'รพ.สามร้อยยอด',d90:1516927,     d91:2800405,     d1y:2266703},
+];
+extAll.forEach(h=>{h.total=h.d90+h.d91+h.d1y});
+
+const typeDB={
+  'รพ.ประจวบฯ':[
+    {n:'ค่ารักษา UC',d90:50479980.67,d91:12480399.58,d1y:15041939.92},
+    {n:'ประกันสังคม',d90:7943688.74,d91:13663641.14,d1y:8487465.52},
+    {n:'เบิกตรง กรมบัญชีฯ IP',d90:13466923.95,d91:0,d1y:1937177},
+    {n:'เบิกตรง กรมบัญชีฯ OP',d90:10623504.5,d91:659002.25,d1y:1746214.58},
+    {n:'เบิกตรง อปท.',d90:5279795.82,d91:7752452.15,d1y:6940183.12},
+    {n:'ชำระเงินเอง',d90:470419.76,d91:2086646.56,d1y:7548412.76},
+    {n:'คนต่างด้าว',d90:2027362.79,d91:1978571.29,d1y:344155.5},
+    {n:'พรบ.รถ',d90:1258782.75,d91:168657.75,d1y:314037.5},
+  ],
+  'รพ.หัวหิน':[
+    {n:'ค่ารักษา UC',d90:82561394.88,d91:29212528.79,d1y:30329341.3},
+    {n:'ประกันสังคม',d90:32320471.49,d91:12683588.67,d1y:18114492.53},
+    {n:'เบิกตรง กรมบัญชีฯ',d90:14743127.26,d91:1807.75,d1y:0},
+    {n:'เบิกตรง อปท.',d90:8878287.67,d91:13957426.73,d1y:51005.5},
+    {n:'ชำระเงินเอง',d90:1606756.64,d91:4703545.33,d1y:30207044.18},
+    {n:'คนต่างด้าว',d90:1942881.14,d91:3220200.18,d1y:2881585.58},
+    {n:'พรบ.รถ',d90:2550176.9,d91:260533.6,d1y:0},
+  ],
+  'รพ.ปราณบุรี':[
+    {n:'ค่ารักษา UC',d90:5213539.85,d91:1338756.47,d1y:12585778.37},
+    {n:'ประกันสังคม',d90:2479806.31,d91:662129.84,d1y:12003},
+    {n:'เบิกตรง กรมบัญชีฯ OP',d90:866264,d91:0,d1y:714745},
+    {n:'เบิกตรง กรมบัญชีฯ IP',d90:456774,d91:0,d1y:465497.79},
+    {n:'คนต่างด้าว',d90:265801.84,d91:66179.52,d1y:467537.27},
+    {n:'ชำระเงินเอง (ext)',d90:375096,d91:0,d1y:4521537.15},
+    {n:'เบิกตรง อปท.',d90:1081026,d91:1149706.14,d1y:723181.22},
+    {n:'พรบ.รถ',d90:285156,d91:194965,d1y:84565},
+    {n:'ส่งสิ่งตรวจ',d90:360683,d91:0,d1y:228592},
+  ],
+  'รพ.บางสะพาน':[
+    {n:'ค่ารักษา UC',d90:26404487.65,d91:3384622.22,d1y:4365056.05},
+    {n:'ประกันสังคม',d90:9826199.4,d91:6111913.65,d1y:3619353.75},
+    {n:'เบิกตรง กรมบัญชีฯ IP',d90:5379123.67,d91:1967036.95,d1y:16852.5},
+    {n:'เบิกตรง อปท.',d90:1539711.15,d91:2522456.5,d1y:33626},
+    {n:'ชำระเงินเอง',d90:617395.5,d91:2018557,d1y:5895969.4},
+    {n:'คนต่างด้าว',d90:1810453.99,d91:1407671.18,d1y:62989.86},
+  ],
+  'รพ.บางสะพานน้อย':[
+    {n:'ค่ารักษา UC',d90:3834469.5,d91:385488,d1y:112608},
+    {n:'ประกันสังคม',d90:499028.65,d91:619882.34,d1y:97818.75},
+    {n:'เบิกตรง กรมบัญชีฯ',d90:838624.25,d91:33047.25,d1y:7600.5},
+    {n:'เบิกตรง อปท.',d90:227843.5,d91:220392.5,d1y:1100},
+    {n:'ชำระเงินเอง',d90:245228.75,d91:545843.95,d1y:2037225.75},
+    {n:'พรบ.รถ',d90:218836,d91:53215,d1y:33405.75},
+    {n:'คนต่างด้าว',d90:28230,d91:115750.5,d1y:20086.25},
+  ],
+  'รพ.สามร้อยยอด':[
+    {n:'ค่ารักษา UC',d90:6239423,d91:2659123,d1y:1050},
+    {n:'ประกันสังคม',d90:1864430.93,d91:3200511.1,d1y:60965},
+    {n:'เบิกตรง กรมบัญชีฯ',d90:3056153,d91:0,d1y:0},
+    {n:'เบิกตรง อปท.',d90:837073,d91:1659535,d1y:0},
+    {n:'ชำระเงินเอง',d90:340439,d91:1137335,d1y:2249917},
+  ],
+  'รพ.กุยบุรี':[
+    {n:'ค่ารักษา UC',d90:3891510.9,d91:419162.47,d1y:129939},
+    {n:'ประกันสังคม',d90:630583,d91:1525902,d1y:15022},
+    {n:'เบิกตรง กรมบัญชีฯ',d90:1646822,d91:6005,d1y:1107},
+    {n:'เบิกตรง อปท.',d90:402054,d91:594776,d1y:124530},
+    {n:'ชำระเงินเอง',d90:64056,d91:264930,d1y:530931},
+  ],
+  'รพ.ทับสะแก':[
+    {n:'ค่ารักษา UC',d90:3648124,d91:1486443.6,d1y:9200},
+    {n:'ประกันสังคม',d90:1231695,d91:1640727.25,d1y:189614},
+    {n:'เบิกตรง กรมบัญชีฯ',d90:1471737.5,d91:0,d1y:0},
+    {n:'เบิกตรง อปท.',d90:326351,d91:731279,d1y:0},
+    {n:'ชำระเงินเอง',d90:77303,d91:389047.25,d1y:850532.5},
+    {n:'พรบ.รถ',d90:329683,d91:19459,d1y:217579},
+  ],
+};
+Object.values(typeDB).forEach(arr=>{if(arr)arr.forEach(d=>{d.total=d.d90+d.d91+d.d1y})});
+
+/* ═══ HELPERS ════════════════════════════════════════════════════════ */
+function riskOf(p){
+  if(p>=50)return{l:'สูงมาก',c:'#ff5252',bg:'rgba(229,57,53,.22)',bc:'rgba(229,57,53,.55)',bar:'#ff5252'};
+  if(p>=25)return{l:'สูง',c:'#ef9a9a',bg:'rgba(229,57,53,.15)',bc:'rgba(229,57,53,.42)',bar:'#ef5350'};
+  if(p>=10)return{l:'ปานกลาง',c:'#ffe082',bg:'rgba(249,168,37,.14)',bc:'rgba(249,168,37,.42)',bar:'#f9a825'};
+  if(p>0) return{l:'ต่ำ',c:'#a5d6a7',bg:'rgba(102,187,106,.14)',bc:'rgba(102,187,106,.42)',bar:'#66bb6a'};
+  return{l:'–',c:'#607d9a',bg:'rgba(255,255,255,.06)',bc:'rgba(255,255,255,.15)',bar:'#607d9a'};
+}
+
+const mkChart=(id,type,data,opts={})=>new Chart(document.getElementById(id),{type,data,options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},...opts}});
+
+/* ═══ PAGE 0 — OVERVIEW ═════════════════════════════════════════════ */
+// overview table
+const ovData=[
+  {n:'รพ.ประจวบฯ', gov:145182237.69,ext:35020308.17, p90:53,p91:22,p1y:25,rk:'สูง'},
+  {n:'รพ.กุยบุรี',  gov:8888474.37, ext:2143640,     p90:65,p91:27,p1y:8, rk:'ปานกลาง'},
+  {n:'รพ.ทับสะแก',  gov:9954364.35, ext:3248634.5,   p90:62,p91:35,p1y:3, rk:'ต่ำ'},
+  {n:'รพ.บางสะพาน', gov:72185837.49,ext:15637533,    p90:62,p91:23,p1y:15,rk:'สูง'},
+  {n:'รพ.บางสะพานน้อย',gov:6921168.49,ext:3605639.7, p90:50,p91:19,p1y:31,rk:'สูง'},
+  {n:'รพ.ปราณบุรี', gov:26451829.26,ext:8658522.51,  p90:31,p91:10,p1y:59,rk:'สูงมาก'},
+  {n:'รพ.หัวหิน',   gov:248906422.83,ext:71446186.31,p90:50,p91:26,p1y:24,rk:'สูง'},
+  {n:'รพ.สามร้อยยอด',gov:17272147.09,ext:6584035,    p90:63,p91:33,p1y:4, rk:'ต่ำ'},
+];
+ovData.forEach(h=>{h.total=h.gov+h.ext});
+const chOv={'สูงมาก':'chip-r','สูง':'chip-r','ปานกลาง':'chip-y','ต่ำ':'chip-g'};
+const ovTb=document.getElementById('ov-tbody');
+ovData.forEach((h,i)=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td style="color:var(--txt-dim)">${i+1}</td>
+    <td style="font-weight:600;color:var(--txt-pri)">${h.n}</td>
+    <td class="num">${fmt(h.gov)}</td><td class="num">${fmt(h.ext)}</td>
+    <td class="num" style="font-weight:600;color:var(--txt-pri)">${fmt(h.total)}</td>
+    <td><div class="hbar">
+      <div class="hbseg" style="background:#388bdc;width:${h.p90}%">${h.p90}%</div>
+      <div class="hbseg" style="background:#f9a825;width:${h.p91}%">${h.p91}%</div>
+      <div class="hbseg" style="background:#ef5350;width:${h.p1y}%">${h.p1y}%</div>
+    </div></td>
+    <td><span class="chip ${chOv[h.rk]||'chip-gr'}">${h.rk}</span></td>`;
+  ovTb.appendChild(tr);
+});
+const ovTr=document.createElement('tr');ovTr.className='total';
+ovTr.innerHTML=`<td colspan="2">รวมทั้งหมด (8 รพ.)</td>
+  <td class="num">535,762,481.68</td><td class="num">146,344,499.19</td>
+  <td class="num">682,106,980.87</td>
+  <td><div class="hbar">
+    <div class="hbseg" style="background:#388bdc;width:53%">53%</div>
+    <div class="hbseg" style="background:#f9a825;width:22%">22%</div>
+    <div class="hbseg" style="background:#ef5350;width:25%">25%</div>
+  </div></td>
+  <td><span class="chip chip-r">เฝ้าระวัง</span></td>`;
+ovTb.appendChild(ovTr);
+
+mkChart('c_ov','bar',{
+  labels:['ภาครัฐ (1102050101)','บุคคลภายนอก (1102050102)'],
+  datasets:[
+    {label:'≤90วัน',data:[327.07,32.55],backgroundColor:'#388bdc',borderRadius:4},
+    {label:'91d–1y',data:[104.38,45.63],backgroundColor:'#f9a825',borderRadius:4},
+    {label:'>1ปี', data:[104.31,68.16],backgroundColor:'#ef5350',borderRadius:4},
+  ]
+},{plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{font:{size:11}},grid:{color:DG}},y:{stacked:true,ticks:{callback:v=>v+'ล.',font:{size:10}},grid:{color:DG}}}});
+
+mkChart('c_pie0','doughnut',{
+  labels:['≤90วัน','91d–1y','>1ปี'],
+  datasets:[{data:[360.9,148.8,172.5],backgroundColor:['#388bdc','#f9a825','#ef5350'],borderWidth:2,borderColor:'#06101f',hoverOffset:8}]
+},{plugins:{legend:{display:false}},cutout:'63%'});
+
+/* ═══ PAGE 1 — GOV ══════════════════════════════════════════════════ */
+mkChart('c_gov','bar',{
+  labels:govAll.map(h=>h.n.replace('รพ.','')),
+  datasets:[
+    {label:'≤90วัน',data:govAll.map(h=>fmtM(h.d90)),backgroundColor:'#388bdc',borderRadius:3},
+    {label:'91d–1y',data:govAll.map(h=>fmtM(h.d91)),backgroundColor:'#f9a825',borderRadius:3},
+    {label:'>1ปี', data:govAll.map(h=>fmtM(h.d1y)),backgroundColor:'#ef5350',borderRadius:3},
+  ]
+},{plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{color:DT,font:{size:9},maxRotation:20},grid:{color:DG}},y:{stacked:true,ticks:{color:DT,callback:v=>v+'ล.',font:{size:10}},grid:{color:DG}}}});
+
+const g3=document.getElementById('gov-top3');
+[...govAll].sort((a,b)=>b.d1y-a.d1y).slice(0,3).forEach(h=>{
+  const p=h.d1y/h.total*100;const r=riskOf(p);
+  const d=document.createElement('div');
+  d.style.cssText=`background:${r.bg};border:1px solid ${r.bc};border-radius:8px;padding:10px 12px`;
+  d.innerHTML=`<div style="font-size:11.5px;font-weight:600;color:${r.c};margin-bottom:5px">${h.n}</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="rscore"><div class="rscore-fill" style="width:${Math.min(p*1.5,100)}%;background:${r.bar}"></div></div>
+      <span style="font-size:12px;font-weight:700;color:${r.c};white-space:nowrap">${p.toFixed(1)}%</span>
+      <span class="chip" style="background:${r.bg};color:${r.c};border-color:${r.bc};font-size:9px">${fmt(h.d1y)} บ.</span>
+    </div>`;
+  g3.appendChild(d);
+});
+
+const gTb=document.getElementById('gov-tbody');
+govAll.forEach((h,i)=>{
+  const p=h.d1y/h.total*100;const r=riskOf(p);
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td style="color:var(--txt-dim)">${i+1}</td>
+    <td style="font-weight:600;color:var(--txt-pri)">${h.n}</td>
+    <td class="num">${fmt(h.total)}</td>
+    <td class="num">${fmt(h.d90)}</td><td class="num">${(h.d90/h.total*100).toFixed(1)}%</td>
+    <td class="num">${fmt(h.d91)}</td><td class="num">${(h.d91/h.total*100).toFixed(1)}%</td>
+    <td class="num" style="color:${p>15?'#ef9a9a':'inherit'}">${fmt(h.d1y)}</td><td class="num">${p.toFixed(1)}%</td>
+    <td><div class="rcell"><div class="mbar"><div class="mbar-fill" style="width:${Math.min(p*1.5,100)}%;background:${r.bar}"></div></div>
+    <span class="chip" style="background:${r.bg};color:${r.c};border-color:${r.bc}">${r.l}</span></div></td>`;
+  gTb.appendChild(tr);
+});
+const gTr=document.createElement('tr');gTr.className='total';
+gTr.innerHTML=`<td colspan="2">รวม (8 รพ.)</td><td class="num">535,762,481.68</td>
+  <td class="num">327,069,993</td><td class="num">61.1%</td>
+  <td class="num">104,381,969</td><td class="num">19.5%</td>
+  <td class="num" style="color:#ef9a9a">104,310,519</td><td class="num">19.5%</td>
+  <td><span class="chip chip-r">เฝ้าระวัง</span></td>`;
+gTb.appendChild(gTr);
+
+/* ═══ PAGE 2 — EXT ══════════════════════════════════════════════════ */
+mkChart('c_ext','bar',{
+  labels:extAll.map(h=>h.n.replace('รพ.','')),
+  datasets:[
+    {label:'≤90วัน',data:extAll.map(h=>fmtM(h.d90)),backgroundColor:'#388bdc',borderRadius:3},
+    {label:'91d–1y',data:extAll.map(h=>fmtM(h.d91)),backgroundColor:'#f9a825',borderRadius:3},
+    {label:'>1ปี', data:extAll.map(h=>fmtM(h.d1y)),backgroundColor:'#ef5350',borderRadius:3},
+  ]
+},{plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{color:DT,font:{size:9},maxRotation:20},grid:{color:DG}},y:{stacked:true,ticks:{color:DT,callback:v=>v+'ล.',font:{size:10}},grid:{color:DG}}}});
+
+mkChart('c_extpie','doughnut',{
+  labels:['≤90วัน','91d–1y','>1ปี'],
+  datasets:[{data:[32.55,45.63,68.16],backgroundColor:['#388bdc','#f9a825','#ef5350'],borderWidth:2,borderColor:'#06101f',hoverOffset:8}]
+},{plugins:{legend:{display:false}},cutout:'63%'});
+
+const eTb=document.getElementById('ext-tbody');
+extAll.forEach((h,i)=>{
+  const p=h.d1y/h.total*100;const r=riskOf(p);
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td style="color:var(--txt-dim)">${i+1}</td>
+    <td style="font-weight:600;color:var(--txt-pri)">${h.n}</td>
+    <td class="num">${fmt(h.total)}</td>
+    <td class="num">${fmt(h.d90)}</td><td class="num">${(h.d90/h.total*100).toFixed(1)}%</td>
+    <td class="num">${fmt(h.d91)}</td><td class="num">${(h.d91/h.total*100).toFixed(1)}%</td>
+    <td class="num" style="color:${p>15?'#ef9a9a':'inherit'}">${fmt(h.d1y)}</td><td class="num">${p.toFixed(1)}%</td>
+    <td><div class="rcell"><div class="mbar"><div class="mbar-fill" style="width:${Math.min(p*1.5,100)}%;background:${r.bar}"></div></div>
+    <span class="chip" style="background:${r.bg};color:${r.c};border-color:${r.bc}">${r.l}</span></div></td>`;
+  eTb.appendChild(tr);
+});
+const eTr=document.createElement('tr');eTr.className='total';
+eTr.innerHTML=`<td colspan="2">รวม (8 รพ.)</td><td class="num">146,344,499.19</td>
+  <td class="num">32,554,310</td><td class="num">22.2%</td>
+  <td class="num">45,631,846</td><td class="num">31.2%</td>
+  <td class="num" style="color:#ef9a9a">68,158,342</td><td class="num">46.6%</td>
+  <td><span class="chip chip-r">เฝ้าระวัง</span></td>`;
+eTb.appendChild(eTr);
+
+/* ═══ PAGE 3 — RISK FACTORS ═════════════════════════════════════════ */
+const rightData=[
+  {n:'ชำระเงินเอง',d1y:68.32},
+  {n:'คนต่างด้าว',d1y:18.6},
+  {n:'ประกันสังคม',d1y:28.97},
+  {n:'เบิกตรง อปท.',d1y:16.47},
+  {n:'ค่ารักษา UC',d1y:87.89},
+  {n:'เบิกตรง กรมบัญชีฯ',d1y:12.02},
+  {n:'พรบ.รถ',d1y:1.26},
+];
+mkChart('c_right','bar',{
+  labels:rightData.map(d=>d.n),
+  datasets:[{
+    label:'หนี้เกิน 1 ปี (ล้านบาท)',
+    data:rightData.map(d=>d.d1y),
+    backgroundColor:rightData.map(d=>d.d1y>50?'#ef5350':d.d1y>20?'#f9a825':d.d1y>10?'#ffd54f':'#66bb6a'),
+    borderRadius:5,
+    borderSkipped:false,
+  }]
+},{plugins:{legend:{display:false}},scales:{x:{ticks:{color:DT,font:{size:9},maxRotation:30},grid:{color:DG}},y:{ticks:{color:DT,callback:v=>v+'ล.',font:{size:10}},grid:{color:DG}}}});
+
+const riskItems=[
+  {n:'ชำระเงินเอง',pct:68.4,lbl:'68.4% เสี่ยงสูงมาก'},
+  {n:'คนต่างด้าว',pct:52.1,lbl:'52.1% เสี่ยงสูงมาก'},
+  {n:'ประกันสังคม',pct:28.7,lbl:'28.7% เสี่ยงสูง'},
+  {n:'เบิกตรง อปท.',pct:22.3,lbl:'22.3% เสี่ยงสูง'},
+  {n:'ค่ารักษา UC',pct:19.8,lbl:'19.8% เสี่ยงปานกลาง'},
+  {n:'เบิกตรง กรมบัญชีฯ',pct:12.1,lbl:'12.1% เสี่ยงปานกลาง'},
+  {n:'พรบ.รถ',pct:4.3,lbl:'4.3% เสี่ยงต่ำ'},
+];
+const rlist=document.getElementById('risk-list');
+riskItems.forEach(d=>{
+  const r=riskOf(d.pct);
+  const el=document.createElement('div');
+  el.style.cssText=`background:${r.bg};border:1px solid ${r.bc};border-radius:7px;padding:8px 10px`;
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <span style="font-size:11px;font-weight:600;color:${r.c}">${d.n}</span>
+    <span class="chip" style="background:${r.bg};color:${r.c};border-color:${r.bc}">${r.l}</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="rscore"><div class="rscore-fill" style="width:${Math.min(d.pct*1.4,100)}%;background:${r.bar}"></div></div>
+    <span style="font-size:11px;font-weight:700;color:${r.c}">${d.pct.toFixed(1)}%</span>
+  </div>`;
+  rlist.appendChild(el);
+});
+
+// รวม gov+ext %1y รายรพ.
+const hospRisk=govAll.map((g,i)=>{
+  const e=extAll[i];
+  const tot=g.total+e.total;
+  const d1y=g.d1y+e.d1y;
+  return{n:g.n.replace('รพ.',''),pGov:g.d1y/g.total*100,pExt:e.d1y/e.total*100,pAll:d1y/tot*100};
+});
+mkChart('c_risk_hosp','bar',{
+  labels:hospRisk.map(h=>h.n),
+  datasets:[
+    {label:'% >1ปี (ภาครัฐ)',data:hospRisk.map(h=>h.pGov.toFixed(1)),backgroundColor:'#388bdc',borderRadius:3},
+    {label:'% >1ปี (บุคคลภายนอก)',data:hospRisk.map(h=>h.pExt.toFixed(1)),backgroundColor:'#ef5350',borderRadius:3},
+  ]
+},{plugins:{legend:{display:true,labels:{color:DT,font:{size:10},boxWidth:10}}},
+  scales:{x:{ticks:{color:DT,font:{size:9},maxRotation:20},grid:{color:DG}},y:{ticks:{color:DT,callback:v=>v+'%',font:{size:10}},grid:{color:DG}}}});
+
+/* ═══ PAGE 5 — POLICY SUPPORT ════════════════════════════════════════ */
+const polRightData=[
+  {n:'UC',d1y:87.89,pct:19.8},
+  {n:'ชำระเงินเอง',d1y:68.32,pct:68.4},
+  {n:'ประกันสังคม',d1y:28.97,pct:28.7},
+  {n:'เบิกตรง อปท.',d1y:16.47,pct:22.3},
+  {n:'คนต่างด้าว',d1y:18.6,pct:52.1},
+  {n:'กรมบัญชีฯ',d1y:12.02,pct:12.1},
+];
+mkChart('c_policy_right','doughnut',{
+  labels:polRightData.map(d=>d.n),
+  datasets:[{
+    data:polRightData.map(d=>d.d1y),
+    backgroundColor:['#388bdc','#ef5350','#f9a825','#26c6a6','#ab47bc','#66bb6a'],
+    borderWidth:2,borderColor:'#06101f',hoverOffset:8,
+  }]
+},{plugins:{legend:{display:true,position:'right',labels:{color:DT,font:{size:10},boxWidth:10,padding:8}}}});
+
+// policy bars — เปรียบเทียบกับเป้าหมาย <10%
+const pbars=document.getElementById('policy-bars');
+const target=10;
+govAll.map(h=>({n:h.n,pct:h.d1y/h.total*100}))
+  .sort((a,b)=>b.pct-a.pct)
+  .forEach(h=>{
+    const r=riskOf(h.pct);const exceed=h.pct>target;
+    const el=document.createElement('div');
+    el.style.cssText=`background:${r.bg};border:1px solid ${r.bc};border-radius:7px;padding:7px 10px`;
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span style="font-size:10.5px;font-weight:600;color:${r.c}">${h.n}</span>
+      <div style="display:flex;gap:5px;align-items:center">
+        <span class="chip" style="background:${r.bg};color:${r.c};border-color:${r.bc}">${h.pct.toFixed(1)}%</span>
+        ${exceed?'<span class="chip chip-r">เกินเป้า +'+(h.pct-target).toFixed(1)+'%</span>':'<span class="chip chip-g">✓ ผ่านเกณฑ์</span>'}
+      </div>
+    </div>
+    <div style="position:relative;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden">
+      <div style="position:absolute;height:100%;width:${Math.min(h.pct*2,100)}%;background:${r.bar};border-radius:3px;transition:width .8s"></div>
+      <div style="position:absolute;height:100%;width:2px;left:${target*2}%;background:#fff;opacity:.5"></div>
+    </div>`;
+    pbars.appendChild(el);
+  });
+
+// hosp ranking
+const hrank=document.getElementById('hosp-rank');
+[...govAll].sort((a,b)=>(a.d1y/a.total)-(b.d1y/b.total)).forEach((h,i)=>{
+  const p=h.d1y/h.total*100;const r=riskOf(p);
+  const el=document.createElement('div');
+  el.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05)';
+  const rankColors=['#f9a825','#9e9e9e','#cd7f32'];
+  const icon=i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:var(--txt-dim);font-size:11px">${i+1}</span>`;
+  el.innerHTML=`<div style="width:22px;text-align:center;font-size:14px">${icon}</div>
+    <div style="flex:1;font-size:11px;font-weight:500;color:${i<3?'var(--txt-pri)':'var(--txt-sec)'}">${h.n}</div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="mbar" style="width:60px"><div class="mbar-fill" style="width:${Math.min(p*1.5,100)}%;background:${r.bar}"></div></div>
+      <span style="font-size:10.5px;font-weight:600;color:${r.c};white-space:nowrap">${p.toFixed(1)}%</span>
+    </div>`;
+  hrank.appendChild(el);
+});
+
+/* ═══ PAGE 6 — TYPE ══════════════════════════════════════════════════ */
+let typeChart=null;
+const hkeys=Object.keys(typeDB);
+const hs6=document.getElementById('hsel6');
+hkeys.forEach((n,i)=>{
+  const b=document.createElement('button');
+  b.className='hbtn'+(i===0?' active':'');
+  b.textContent=n;
+  b.onclick=()=>{hs6.querySelectorAll('.hbtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderType(n);};
+  hs6.appendChild(b);
+});
+
+function renderType(k){
+  const data=typeDB[k];
+  document.getElementById('tct6').innerHTML=`<span>📊</span> รายประเภทลูกหนี้ — ${k}`;
+  document.getElementById('ttt6').innerHTML=`<span>📋</span> ตารางรายประเภทลูกหนี้ — ${k}`;
+  document.getElementById('type-top6').innerHTML='';
+  document.getElementById('type-tbody6').innerHTML='';
+  const cv=document.getElementById('c_type');
+  if(typeChart){typeChart.destroy();typeChart=null;}
+  typeChart=new Chart(cv,{type:'bar',
+    data:{labels:data.map(d=>d.n),datasets:[
+      {label:'≤90วัน',data:data.map(d=>Math.round(d.d90)),backgroundColor:'#388bdc',borderRadius:3},
+      {label:'91d–1y',data:data.map(d=>Math.round(d.d91)),backgroundColor:'#f9a825',borderRadius:3},
+      {label:'>1ปี', data:data.map(d=>Math.round(d.d1y)),backgroundColor:'#ef5350',borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:400},
+      plugins:{legend:{display:false}},indexAxis:'y',
+      scales:{x:{stacked:true,ticks:{color:DT,callback:v=>v>=1e6?(v/1e6).toFixed(1)+'ล.':(v/1e3).toFixed(0)+'k',font:{size:9}},grid:{color:DG}},
+              y:{stacked:true,ticks:{color:DT,font:{size:9}},grid:{color:DG}}}}
+  });
+  const tt=document.getElementById('type-top6');
+  [...data].sort((a,b)=>b.d1y-a.d1y).slice(0,4).forEach(d=>{
+    const p=d.d1y/d.total*100;const r=riskOf(p);
+    const div=document.createElement('div');
+    div.style.cssText=`background:${r.bg};border:1px solid ${r.bc};border-radius:8px;padding:9px 11px`;
+    div.innerHTML=`<div style="font-size:11px;font-weight:600;color:${r.c};margin-bottom:4px">${d.n}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="rscore"><div class="rscore-fill" style="width:${Math.min(p*1.5,100)}%;background:${r.bar}"></div></div>
+        <span style="font-size:12px;font-weight:700;color:${r.c}">${p.toFixed(1)}%</span>
+        <span class="chip" style="background:${r.bg};color:${r.c};border-color:${r.bc};font-size:9px">${fmt(d.d1y)}</span>
+      </div>`;
+    tt.appendChild(div);
+  });
+  const tb=document.getElementById('type-tbody6');
+  data.forEach((d,i)=>{
+    const p=d.d1y/d.total*100;const r=riskOf(p);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--txt-dim)">${i+1}</td>
+      <td style="white-space:nowrap;color:#c5deff">${d.n}</td>
+      <td class="num">${fmt(d.d90)}</td><td class="num">${fmt(d.d91)}</td>
+      <td class="num" style="color:${p>15?'#ef9a9a':'inherit'}">${fmt(d.d1y)}</td>
+      <td class="num" style="font-weight:600;color:var(--txt-pri)">${fmt(d.total)}</td>
+      <td class="num">${p.toFixed(1)}%</td>
+      <td><div class="rcell"><div class="mbar"><div class="mbar-fill" style="width:${Math.min(p*1.5,100)}%;background:${r.bar}"></div></div>
+      <span class="chip" style="background:${r.bg};color:${r.c};border-color:${r.bc}">${r.l}</span></div></td>`;
+    tb.appendChild(tr);
+  });
+}
+renderType(hkeys[0]);
+
+/* ═══ TAB SWITCHER ═══════════════════════════════════════════════════ */
+function showTab(i){
+  document.querySelectorAll('.tab-item').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.page').forEach((p,j)=>p.classList.toggle('active',i===j));
+}
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PAGE 7: งบทดลอง GFMIS -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="page" id="p7">
+<script>
+/* ข้อมูลจากงบทดลอง GFMIS เมษายน 2569 (ยอดยกมา = ยอดคงค้าง ณ ต้นงวด) */
+const gfData = [
+  { n:'รพ.ประจวบฯ',   code:'2100200222', gov_b:159561480.14, gov_d:54880354.41, ext_b:34697055.76, ext_d:3097217.27,  rev_ip:114722872.11, rev_uc:166419219.69, rev_fund:34330536.77 },
+  { n:'รพ.บางสะพาน', code:'2100201140', gov_b:77183983.24,  gov_d:30887456.09, ext_b:15810700.65, ext_d:2156273.98,  rev_ip:56677875.21,  rev_uc:133245491.41, rev_fund:37740612.41 },
+  { n:'รพ.หัวหิน',   code:'2100200259', gov_b:243949975.20, gov_d:133544344.58,ext_b:68164152.40, ext_d:20438111.86, rev_ip:249832320.83, rev_uc:218798006.04, rev_fund:70518301.22 },
+  { n:'รพ.กุยบุรี',  code:'2100200221', gov_b:8806098.06,   gov_d:524671.31,   ext_b:2010732.00, ext_d:132908.00,   rev_ip:8949048.66,  rev_uc:43090353.45, rev_fund:3683352.58 },
+  { n:'รพ.ทับสะแก',  code:'2100200221', gov_b:11216200.90,  gov_d:461097.85,   ext_b:3245008.75, ext_d:3626.00,     rev_ip:12798033.11, rev_uc:40105695.20, rev_fund:4620946.41 },
+  { n:'รพ.บางสะพานน้อย',code:'2100200221',gov_b:6700621.74,gov_d:976993.75,  ext_b:3409746.45, ext_d:195893.25,   rev_ip:7045691.16,  rev_uc:38456164.80, rev_fund:5397694.20 },
+  { n:'รพ.ปราณบุรี', code:'2100200221', gov_b:25165495.84,  gov_d:148886.76,   ext_b:8346283.51, ext_d:341130.00,   rev_ip:15788472.54, rev_uc:55205908.17, rev_fund:4770141.55 },
+  { n:'รพ.สามร้อยยอด',code:'2100200221',gov_b:17278791.40, gov_d:415943.75,   ext_b:6253283.00, ext_d:330752.00,   rev_ip:20584583.73, rev_uc:53622257.72, rev_fund:5648111.27 },
+];
+gfData.forEach(h=>{
+  h.gov_net = h.gov_b; // ยอดยกมา = ยอดลูกหนี้ภาครัฐ
+  h.ext_net = h.ext_b;
+  h.total_ar = h.gov_b + h.ext_b;
+  h.total_rev = h.rev_ip + h.rev_uc + h.rev_fund;
+  h.ar_ratio = h.total_rev > 0 ? (h.total_ar / h.total_rev * 100) : 0;
+  h.gov_debit_ratio = h.gov_b > 0 ? (h.gov_d / h.gov_b * 100) : 0;
+});
+
+const fmtG = n => n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+// รวม
+const totGov = gfData.reduce((s,h)=>s+h.gov_b,0);
+const totExt = gfData.reduce((s,h)=>s+h.ext_b,0);
+const totRev = gfData.reduce((s,h)=>s+h.total_rev,0);
+
+document.write(`
+<div style="display:flex;flex-direction:column;gap:12px">
+
+  <div style="background:rgba(38,198,166,.1);border:1px solid rgba(38,198,166,.35);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px">
+    <div style="font-size:20px">📒</div>
+    <div>
+      <div style="font-size:12px;font-weight:600;color:#80cbc4;margin-bottom:3px">ข้อมูลจากงบทดลอง GFMIS — บัญชี 1102050101 / 1102050102 (เดือนเมษายน 2569)</div>
+      <div style="font-size:11px;color:var(--txt-sec);line-height:1.6">ยอดยกมา = ยอดลูกหนี้คงค้างต้นงวด · เดบิต = ยอดที่เกิดขึ้นใหม่ในงวด · แหล่งข้อมูล: รายงานงบทดลองหน่วยเบิกจ่ายรายเดือน ระบบ GFMIS (NGL_TB_PMT)</div>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi tl">
+      <span class="kpi-icon">📊</span>
+      <div class="kpi-lbl">ลูกหนี้ภาครัฐ (ยอดยกมา)</div>
+      <div class="kpi-val">${(totGov/1e6).toFixed(2)} ล้าน</div>
+      <div class="kpi-sub">รวม 8 หน่วยบริการ</div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon">👤</span>
+      <div class="kpi-lbl">ลูกหนี้บุคคลภายนอก (ยอดยกมา)</div>
+      <div class="kpi-val" style="color:#80cbc4">${(totExt/1e6).toFixed(2)} ล้าน</div>
+      <div class="kpi-sub">รวม 8 หน่วยบริการ</div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-icon">💰</span>
+      <div class="kpi-lbl">รายได้รักษาพยาบาลสะสม</div>
+      <div class="kpi-val">${(totRev/1e6).toFixed(2)} ล้าน</div>
+      <div class="kpi-sub">รวม IP+UC+กองทุน</div>
+    </div>
+    <div class="kpi" style="border-color:rgba(249,168,37,.4)">
+      <span class="kpi-icon">📐</span>
+      <div class="kpi-lbl">สัดส่วนลูกหนี้ / รายได้รวม</div>
+      <div class="kpi-val" style="color:#ffe082">${((totGov+totExt)/totRev*100).toFixed(1)}%</div>
+      <div class="kpi-sub">ควร &lt; 30% ถือว่าปกติ</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-t"><span>📋</span> ตารางข้อมูลงบทดลอง GFMIS รายหน่วยเบิกจ่าย — เมษายน 2569</div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th rowspan="2">#</th>
+            <th rowspan="2">หน่วยเบิกจ่าย</th>
+            <th colspan="2" style="text-align:center;background:rgba(56,139,220,.3)">ลูกหนี้ภาครัฐ (1102050101)</th>
+            <th colspan="2" style="text-align:center;background:rgba(38,198,166,.25)">ลูกหนี้บุคคลภายนอก (1102050102)</th>
+            <th colspan="3" style="text-align:center;background:rgba(102,187,106,.2)">รายได้ค่ารักษาพยาบาล (สะสม)</th>
+            <th rowspan="2">AR/Rev %</th>
+            <th rowspan="2">เดบิตใหม่ %</th>
+          </tr>
+          <tr>
+            <th class="num" style="background:rgba(56,139,220,.2)">ยอดยกมา (บาท)</th>
+            <th class="num" style="background:rgba(56,139,220,.2)">เดบิตงวดนี้</th>
+            <th class="num" style="background:rgba(38,198,166,.15)">ยอดยกมา (บาท)</th>
+            <th class="num" style="background:rgba(38,198,166,.15)">เดบิตงวดนี้</th>
+            <th class="num" style="background:rgba(102,187,106,.12)">ร/ด IP</th>
+            <th class="num" style="background:rgba(102,187,106,.12)">ร/ด UC (30บ.)</th>
+            <th class="num" style="background:rgba(102,187,106,.12)">ร/ด กองทุน</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${gfData.map((h,i)=>{
+            const arRatio = h.ar_ratio;
+            const debRatio = h.gov_debit_ratio;
+            const arColor = arRatio>50?'#ef9a9a':arRatio>30?'#ffe082':'#a5d6a7';
+            const debColor = debRatio>40?'#ef9a9a':debRatio>20?'#ffe082':'#a5d6a7';
+            return `<tr>
+              <td style="color:var(--txt-dim)">${i+1}</td>
+              <td style="font-weight:600;color:var(--txt-pri)">${h.n}</td>
+              <td class="num" style="color:#90caf9">${fmtG(h.gov_b)}</td>
+              <td class="num" style="color:#64b5f6">${fmtG(h.gov_d)}</td>
+              <td class="num" style="color:#80cbc4">${fmtG(h.ext_b)}</td>
+              <td class="num" style="color:#4db6ac">${fmtG(h.ext_d)}</td>
+              <td class="num">${fmtG(h.rev_ip)}</td>
+              <td class="num">${fmtG(h.rev_uc)}</td>
+              <td class="num">${fmtG(h.rev_fund)}</td>
+              <td style="text-align:center"><span class="chip" style="background:rgba(255,255,255,.07);color:${arColor};border-color:rgba(255,255,255,.2)">${arRatio.toFixed(1)}%</span></td>
+              <td style="text-align:center"><span class="chip" style="background:rgba(255,255,255,.07);color:${debColor};border-color:rgba(255,255,255,.2)">${debRatio.toFixed(1)}%</span></td>
+            </tr>`;
+          }).join('')}
+          <tr class="total">
+            <td colspan="2">รวมทั้งหมด</td>
+            <td class="num">${fmtG(totGov)}</td>
+            <td class="num">${fmtG(gfData.reduce((s,h)=>s+h.gov_d,0))}</td>
+            <td class="num">${fmtG(totExt)}</td>
+            <td class="num">${fmtG(gfData.reduce((s,h)=>s+h.ext_d,0))}</td>
+            <td class="num">${fmtG(gfData.reduce((s,h)=>s+h.rev_ip,0))}</td>
+            <td class="num">${fmtG(gfData.reduce((s,h)=>s+h.rev_uc,0))}</td>
+            <td class="num">${fmtG(gfData.reduce((s,h)=>s+h.rev_fund,0))}</td>
+            <td style="text-align:center"><span class="chip chip-y">${((totGov+totExt)/totRev*100).toFixed(1)}%</span></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-t"><span>📊</span> เปรียบเทียบยอดยกมาลูกหนี้ vs เดบิตงวดนี้ รายหน่วยบริการ (ล้านบาท)</div>
+      <div class="leg">
+        <div class="leg-item"><div class="leg-sq" style="background:#388bdc"></div>ลูกหนี้ภาครัฐ (ยอดยกมา)</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#26c6a6"></div>ลูกหนี้บุคคลภายนอก (ยอดยกมา)</div>
+        <div class="leg-item"><div class="leg-sq" style="background:#66bb6a"></div>เดบิตใหม่ ภาครัฐ</div>
+      </div>
+      <div style="position:relative;height:230px"><canvas id="c_gf_bar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><span>🔍</span> วิเคราะห์ข้อมูลงบทดลองเชิงลึก</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="alert-box alert-blue" style="padding:10px 12px">
+          <div style="font-size:16px">💡</div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#90caf9;margin-bottom:2px">ยอดยกมาสูงกว่าข้อมูล Excel — เหตุใด?</div>
+            <div style="font-size:10.5px;color:var(--txt-sec);line-height:1.6">ยอดยกมาในงบทดลอง GFMIS คือ <strong style="color:#e3f2fd">ยอดสะสมตั้งแต่ต้นปีงบประมาณ</strong> ก่อนหักยอดรับชำระ ขณะที่ข้อมูล Excel แสดงยอดสุทธิหลังหักชำระแล้ว ความแตกต่างจึงเกิดขึ้นได้</div>
+          </div>
+        </div>
+        <div class="alert-box alert-red" style="padding:10px 12px">
+          <div style="font-size:16px">🚨</div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#ef9a9a;margin-bottom:2px">รพ.หัวหิน — ยอดยกมาสูงสุด 243.9 ล้าน</div>
+            <div style="font-size:10.5px;color:var(--txt-sec);line-height:1.6">เดบิตงวดนี้ 133.5 ล้าน (54.7% ของยอดยกมา) สูงมาก แสดงว่ามีการเรียกเก็บหนี้ใหม่จำนวนมากในเดือนเมษายน</div>
+          </div>
+        </div>
+        <div class="alert-box alert-amb" style="padding:10px 12px">
+          <div style="font-size:16px">⚠️</div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#ffe082;margin-bottom:2px">รพ.ปราณบุรี — เดบิตน้อยมาก (0.59%)</div>
+            <div style="font-size:10.5px;color:var(--txt-sec);line-height:1.6">เดบิตเพียง 148,886 บาทจากยอดยกมา 25.2 ล้าน บ่งชี้การออกใบแจ้งหนี้น้อย หรือล่าช้า — สอดคล้องกับปัญหา adjudication UC ที่พบ</div>
+          </div>
+        </div>
+        <div class="alert-box alert-grn" style="padding:10px 12px">
+          <div style="font-size:16px">✅</div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#a5d6a7;margin-bottom:2px">รายได้ UC สูงสุด — รพ.หัวหิน 218.8 ล้าน</div>
+            <div style="font-size:10.5px;color:var(--txt-sec);line-height:1.6">สะท้อนปริมาณผู้ป่วย UC มาก ซึ่งสัมพันธ์กับลูกหนี้ภาครัฐที่สูง เนื่องจาก สปสช. จ่ายล่าช้าตามระบบ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-t"><span>📈</span> สัดส่วนลูกหนี้รวม ต่อรายได้ค่ารักษาพยาบาลสะสม (AR/Revenue Ratio) — เกณฑ์ปกติ &lt; 30%</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${gfData.map(h=>{
+        const r2 = h.ar_ratio;
+        const clr = r2>50?'#ef5350':r2>30?'#f9a825':'#66bb6a';
+        const lbl = r2>50?'สูงมาก':r2>30?'สูงกว่าเกณฑ์':'ปกติ';
+        const bg2 = r2>50?'rgba(239,83,80,.15)':r2>30?'rgba(249,168,37,.13)':'rgba(102,187,106,.13)';
+        const bc2 = r2>50?'rgba(239,83,80,.4)':r2>30?'rgba(249,168,37,.38)':'rgba(102,187,106,.38)';
+        return `<div style="background:${bg2};border:1px solid ${bc2};border-radius:8px;padding:9px 12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:11.5px;font-weight:600;color:${clr}">${h.n}</span>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="font-size:10px;color:var(--txt-dim)">AR ${fmtG(h.total_ar)} / Rev ${fmtG(h.total_rev)}</span>
+              <span class="chip" style="background:${bg2};color:${clr};border-color:${bc2}">${r2.toFixed(1)}% — ${lbl}</span>
+            </div>
+          </div>
+          <div style="position:relative;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden">
+            <div style="position:absolute;height:100%;width:${Math.min(r2*1.5,100)}%;background:${clr};border-radius:3px;transition:width .8s"></div>
+            <div style="position:absolute;height:100%;width:2px;left:45%;background:rgba(255,255,255,.4)"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+</div>
+`);
+
+// สร้าง Chart หลังจาก document.write เสร็จ
+setTimeout(()=>{
+  const cv=document.getElementById('c_gf_bar');
+  if(!cv)return;
+  new Chart(cv,{type:'bar',
+    data:{labels:gfData.map(h=>h.n.replace('รพ.','')),
+      datasets:[
+        {label:'ลูกหนี้ภาครัฐ (ยอดยกมา)',data:gfData.map(h=>parseFloat((h.gov_b/1e6).toFixed(2))),backgroundColor:'#388bdc',borderRadius:3},
+        {label:'ลูกหนี้บุคคลภายนอก (ยอดยกมา)',data:gfData.map(h=>parseFloat((h.ext_b/1e6).toFixed(2))),backgroundColor:'#26c6a6',borderRadius:3},
+        {label:'เดบิตใหม่ ภาครัฐ',data:gfData.map(h=>parseFloat((h.gov_d/1e6).toFixed(2))),backgroundColor:'rgba(102,187,106,0.75)',borderRadius:3},
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,labels:{color:'#607d9a',font:{size:10},boxWidth:10,padding:8}}},
+      scales:{x:{ticks:{color:'#607d9a',font:{size:9},maxRotation:20},grid:{color:'rgba(255,255,255,0.06)'}},
+              y:{ticks:{color:'#607d9a',callback:v=>v+'ล.',font:{size:10}},grid:{color:'rgba(255,255,255,0.06)'}}}}
+  });
+},300);
+</script>
+</section>
+
+</body>
+</html>
